@@ -3,10 +3,12 @@
 const main = async() => {
 
     // I grabbed the wallet address of contract owner and I also grabbed a random wallet address and called it randomPerson.
-    const [owner, randomPerson] = await hre.ethers.getSigners();
+
     //Compile contract under the artifacts directory
     const commContractFactory = await hre.ethers.getContractFactory("CommPortal");
-    const commContract = await commContractFactory.deploy();
+    const commContract = await commContractFactory.deploy({
+        value: hre.ethers.utils.parseEther("0.1"), //funding the contract
+    });
 
     //Hardhat will create a local Ethereum network for us, but just for this contract. Then, after the script completes it'll destroy that local network. So, every time you run the contract, it'll be a fresh blockchain. What's the point? It's kinda like refreshing your local server every time so you always start from a clean slate which makes it easy to debug errors.
     await commContract.deployed();
@@ -14,20 +16,54 @@ const main = async() => {
     //We'll wait until our contract is officially deployed to our local blockchain! Our constructor runs when we actually deploy.
     console.log("Contract deployed to:", commContract.address);
     // see the address of the person deploying our contract
-    console.log("Contract deployed by:", owner.address);
+    // console.log("Contract deployed by:", owner.address);
 
-    let waveCount;
-    waveCount = await commContract.getTotalWaves();
+    /*
+     * Get Contract balance
+     */
+    let contractBalance = await hre.ethers.provider.getBalance(
+        commContract.address
+    );
+    console.log(
+        "Contract balance:",
+        hre.ethers.utils.formatEther(contractBalance)
+    );
 
-    let waveTxn = await commContract.wave();
+    //two waves
+
+    const waveTxn = await commContract.wave("This is wave #1");
     await waveTxn.wait();
 
-    waveCount = await commContract.getTotalWaves();
+    const waveTxn2 = await commContract.wave("This is wave #2");
+    await waveTxn2.wait();
 
-    waveTxn = await commContract.connect(randomPerson).wave();
-    await waveTxn.wait();
+    // let waveCount;
+    // waveCount = await commContract.getTotalWaves();
+    // console.log(waveCount.toNumber());
 
-    waveCount = await commContract.getTotalWaves();
+    /**
+     * Let's send a few waves!
+     */
+
+    // let waveTxn = await commContract.wave("A message");
+    // await waveTxn.wait(); // Wait for the transaction to be mined
+
+    /*
+     * Get Contract balance to see what happened!
+     */
+    contractBalance = await hre.ethers.provider.getBalance(commContract.address);
+    console.log(
+        "Contract balance:",
+        hre.ethers.utils.formatEther(contractBalance)
+    );
+
+    // const [_, randomPerson] = await hre.ethers.getSigners();
+    // waveTxn = await commContract.connect(randomPerson).wave("Another message");
+    // await waveTxn.wait(); // Wait for the transaction to be mined
+
+    let allWaves = await commContract.getAllWaves();
+    console.log(allWaves);
+    // waveCount = await commContract.getTotalWaves();
 };
 
 const runMain = async() => {
